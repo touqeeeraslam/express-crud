@@ -114,10 +114,32 @@ async function getUsers(req,res,next){
 
 }
 
+async function changeUserStatus(req,res,next){
+
+    try {
+        const { status, user_id } = req.body;
+        const changedUserStatus = await User.findByIdAndUpdate(
+            {
+                _id: user_id
+            },
+            {
+                status: status
+            }
+        );
+
+        res.status(200).json({ message: 'success', result: { data: {} } });
+
+    } catch (error) {
+        res.status(401).json({ message: error?.message, data: {} });
+
+    }
+}
+
 module.exports = {
     register,
     login,
     uploadFiles,
     saveUploadedFile,
-    getUsers
+    getUsers,
+    changeUserStatus
 }

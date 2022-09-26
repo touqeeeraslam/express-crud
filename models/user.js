@@ -9,6 +9,8 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: mongoose.Schema.Types.ObjectId, ref: 'role' },
     verified: { type: Number, default: 0 },
+    status: { type: Number, default: 1 },
+    payment_status: { type: Number, default: 0 },
     files: [
        UserStorageSchema
     ]
