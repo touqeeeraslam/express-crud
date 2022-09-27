@@ -1,5 +1,5 @@
 
-const { getStorage, ref, uploadBytes, getDownloadURL } = require("firebase/storage");
+const { getStorage, ref, uploadBytes, getDownloadURL,deleteObject  } = require("firebase/storage");
 
 async function uploadToFirebaseStorage(file, fileName) {
     const modifiedFileName = `files/${new Date().toISOString()}${fileName}`;
@@ -10,4 +10,14 @@ async function uploadToFirebaseStorage(file, fileName) {
     return returnedUrl;
 }
 
-module.exports = { uploadToFirebaseStorage };
+async function deleteFromStorage(fileName) {
+
+    const storage = getStorage();
+    const fileRef = ref(storage, fileName);
+    await deleteObject(fileRef);
+}
+
+module.exports = {
+    uploadToFirebaseStorage,
+    deleteFromStorage
+};

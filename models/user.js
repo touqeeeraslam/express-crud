@@ -1,8 +1,11 @@
 const mongoose = require('mongoose');
 
-const UserStorageSchema = new mongoose.Schema({
-    url: { type: String, required: true }
-});
+const UserStorageSchema = new mongoose.Schema(
+    {
+        url: { type: String, required: true },
+        created_at: { type: Date, required: true }
+    }
+);
 
 const UserSchema = new mongoose.Schema({
     email: { type: String, required: true },
