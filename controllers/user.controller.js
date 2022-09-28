@@ -4,7 +4,7 @@ const Role = require('../models/role');
 const UserStorage = require('../models/user.storage');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { uploadToFirebaseStorage } = require('../shared/firebase/firebase.storage');
+const { uploadToFirebaseStorage,deleteFromStorage } = require('../shared/firebase/firebase.storage');
 const { __parse } = require('../shared/helper');
 
 
@@ -81,7 +81,7 @@ async function saveUploadedFile(req, res, next) {
                 _id: user_id
             },
             {
-                "$push": { files: [{ 'url': url }] }
+                "$push": { files: [{ 'url': url, created_at: new Date() }] }
             }
         );
 
@@ -96,22 +96,113 @@ async function getUsers(req,res,next){
 
     try {
 
-        let userData;
+        const { page, per_page = 10, ...whereFilter } = req.body;
         if (req?.body?.user_id) {
-            userData = __parse(await User.findOne({ _id: req.body.user_id }).select({ password: 0 }).populate('role'));
+            const userData = __parse(await User.findOne({ _id: req.body.user_id }).select({ password: 0 }).populate('role'));
+            res.status(200).json({ message: 'success', result: { data: userData } });
         }
         else {
-            userData = __parse(await User.find({}).select({ password: 0 }).populate('role'));
+            const totalRecord = await getUserInfo(null, null, whereFilter);
+            console.log('totalRecord: ', totalRecord);
+            const paginatedRecord = await getUserInfo(page, per_page, whereFilter);
+            res.status(200).json(
+                {
+                    total: totalRecord[0]?.count,
+                    pages:Math.ceil(totalRecord[0]?.count / per_page),
+                    per_page,
+                    result: { data: paginatedRecord }
+                }
+            );
         }
-
-        res.status(200).json({ message: 'success', result: { data: userData  } });
 
     } catch (error) {
         res.status(401).json({ message: error?.message, data: {} });
     }
    
+}
 
+async function changeUserStatus(req,res,next){
 
+    try {
+        const { status, user_id } = req.body;
+        const changedUserStatus = await User.findByIdAndUpdate(
+            {
+                _id: user_id
+            },
+            {
+                status: status
+            }
+        );
+
+        res.status(200).json({ message: 'success', result: { data: {} } });
+
+    } catch (error) {
+        res.status(401).json({ message: error?.message, data: {} });
+
+    }
+}
+
+async function deleteFile(req,res,next){
+
+    try {
+        
+        const { user_id, file_obj } = req.body;
+        const { _id: fileId, url: fileUrl } = file_obj;
+        const updatedUserModel = await User.findByIdAndUpdate(
+            { _id: user_id },
+            { $pull: { files: { _id: fileId } } },
+            { new: true }
+        );
+        res.json({ message: "success" });
+
+    } catch (error) {
+        console.log(error.code);
+    }
+}
+
+async function getUserInfo(page , per_page , whereFilter) {
+
+    let pagination = [];
+    if (page && per_page) {
+        const skip = (page - 1) * per_page;
+        pagination = [
+            { $skip: skip },
+            { $limit: per_page }
+        ]
+    }
+
+    return __parse(await User.aggregate([
+        ...(whereFilter?.date ? [
+            {
+                $match: {
+                    'files.created_at': {
+                        $gt: new Date(new Date(whereFilter?.date).setUTCHours(0, 0, 0, 0)),
+                        $lt: new Date(new Date(whereFilter?.date).setUTCHours(23, 0, 0, 0))
+                    }
+                }
+            }
+        ] : []),
+        { $lookup: { from: 'roles', localField: 'role', foreignField: '_id', as: 'user_role' } },
+        {
+            $project: {
+                "email": 1,
+                "verified": 1,
+                "user_role": { "$arrayElemAt": ["$user_role", 0] },
+                "files":1,
+            }
+        },
+        { $unwind: "$user_role" },
+        { $unwind: { path : "$files" , "preserveNullAndEmptyArrays": true } },
+        {
+            $match: {
+                "user_role.name": { $ne: "Admin" }
+            }
+        },
+        {$sort: {'files.created_at':-1}},
+        {$group: {_id: '$_id', files: {$push: '$files'}}},
+        ...((!page && !per_page) ? [{ $group: { _id: null, count: { $sum: 1 } } }] : []),
+        ...pagination
+    ]));
 }
 
 module.exports = {
@@ -119,5 +210,7 @@ module.exports = {
     login,
     uploadFiles,
     saveUploadedFile,
-    getUsers
+    getUsers,
+    changeUserStatus,
+    deleteFile
 }

@@ -11,5 +11,7 @@ router.post('/login',userController.login);
 router.post('/uploads', fileUploads, userController.uploadFiles);
 router.post('/save-upload',userController.saveUploadedFile);
 router.post('/get-user-info',userController.getUsers);
+router.post('/change-user-status', userController.changeUserStatus);
+router.post('/delete-file',userController.deleteFile);
 
 module.exports = router;
