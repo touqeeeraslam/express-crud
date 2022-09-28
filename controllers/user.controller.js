@@ -188,18 +188,19 @@ async function getUserInfo(page , per_page , whereFilter) {
                 "email": 1,
                 "verified": 1,
                 "user_role": { "$arrayElemAt": ["$user_role", 0] },
-                "files":1,
+                "files": 1,
+                "status": 1
             }
         },
-        { $unwind: "$user_role" },
+       // { $unwind: "$user_role" },
         { $unwind: { path : "$files" , "preserveNullAndEmptyArrays": true } },
         {
             $match: {
                 "user_role.name": { $ne: "Admin" }
             }
         },
-        {$sort: {'files.created_at':-1}},
-        {$group: {_id: '$_id', files: {$push: '$files'}}},
+        { $sort: { 'files.created_at': where?.order === "asc" ? -1 : 1 } },
+        {$group: {_id: '$_id', email :{ $first:'$email' }, user_role : { $first :'$user_role' }, files: {$push: '$files'}}},
         ...((!page && !per_page) ? [{ $group: { _id: null, count: { $sum: 1 } } }] : []),
         ...pagination
     ]));
