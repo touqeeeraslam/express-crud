@@ -199,7 +199,7 @@ async function getUserInfo(page , per_page , whereFilter) {
                 "user_role.name": { $ne: "Admin" }
             }
         },
-        { $sort: { 'files.created_at': where?.order === "asc" ? -1 : 1 } },
+        { $sort: { 'files.created_at': where?.order === "desc" ? 1 : -1 } },
         {$group: {_id: '$_id', email :{ $first:'$email' }, user_role : { $first :'$user_role' }, files: {$push: '$files'}}},
         ...((!page && !per_page) ? [{ $group: { _id: null, count: { $sum: 1 } } }] : []),
         ...pagination
