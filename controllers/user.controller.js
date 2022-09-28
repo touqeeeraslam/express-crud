@@ -103,6 +103,7 @@ async function getUsers(req,res,next){
         }
         else {
             const totalRecord = await getUserInfo(null, null, whereFilter);
+            console.log('totalRecord: ', totalRecord);
             const paginatedRecord = await getUserInfo(page, per_page, whereFilter);
             res.status(200).json(
                 {
@@ -191,7 +192,7 @@ async function getUserInfo(page , per_page , whereFilter) {
             }
         },
         { $unwind: "$user_role" },
-        { $unwind: "$files" },
+        { $unwind: { path : "$files" , "preserveNullAndEmptyArrays": true } },
         {
             $match: {
                 "user_role.name": { $ne: "Admin" }
