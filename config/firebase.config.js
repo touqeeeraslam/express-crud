@@ -1,12 +1,11 @@
-
 const firebaseConfig = {
-  apiKey: "AIzaSyCe86_z9pZudsSShQDwna0fNzUhkKW5JLo",
-  authDomain: "node-storage-e79ab.firebaseapp.com",
-  projectId: "node-storage-e79ab",
-  storageBucket: "node-storage-e79ab.appspot.com",
-  messagingSenderId: "420125250727",
-  appId: "1:420125250727:web:fed78ee4433730efddf782",
-  measurementId: "G-BVXKLKQ0QH"
+  apiKey: "AIzaSyDlrbT4SKCrRH-ek8uvR-ZQmTfSKSPhyng",
+  authDomain: "dev-storage-b1cdb.firebaseapp.com",
+  projectId: "dev-storage-b1cdb",
+  storageBucket: "dev-storage-b1cdb.appspot.com",
+  messagingSenderId: "803223421625",
+  appId: "1:803223421625:web:958aeb84817f8f0a829168",
+  measurementId: "G-RPH3PYEXVX"
 };
 
 module.exports = { firebaseConfig };
