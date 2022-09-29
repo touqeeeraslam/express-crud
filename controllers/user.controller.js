@@ -196,6 +196,7 @@ async function getUserInfo(page , per_page , whereFilter) {
         { $unwind: { path : "$files" , "preserveNullAndEmptyArrays": true } },
         {
             $match: {
+                "status": { $eq: 1 },
                 "user_role.name": { $ne: "Admin" }
             }
         },
