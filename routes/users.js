@@ -13,5 +13,7 @@ router.post('/save-upload',userController.saveUploadedFile);
 router.post('/get-user-info',userController.getUsers);
 router.post('/change-user-status', userController.changeUserStatus);
 router.post('/delete-file',userController.deleteFile);
+router.post('/check-user-plan-validity',userController.checkUserPlanExists);
+router.post('/add-upgrade-user-subscription-plan',userController.addOrUpgradeUserSubscriptionPlan);
 
 module.exports = router;

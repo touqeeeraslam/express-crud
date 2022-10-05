@@ -1,12 +1,14 @@
 
 const User = require('../models/user');
 const Role = require('../models/role');
-const UserStorage = require('../models/user.storage');
+const UserPlans = require('../models/user_plans');
+const Plan = require('../models/plans');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { uploadToFirebaseStorage,deleteFromStorage } = require('../shared/firebase/firebase.storage');
 const { __parse } = require('../shared/helper');
-
+const { mongoose } = require('../config/mongo.config');
+const moment = require('moment');
 
 async function register(req, res, next) {
 
@@ -156,7 +158,7 @@ async function deleteFile(req,res,next){
         res.json({ message: "success" });
 
     } catch (error) {
-        console.log(error.code);
+        res.status(401).json({ message: error?.message, data: {} });
     }
 }
 
@@ -207,6 +209,74 @@ async function getUserInfo(page , per_page , whereFilter) {
     ]));
 }
 
+async function checkUserPlanExists(req,res,next) {
+    
+    try {
+        
+        const checkUserPlan = __parse(await User.aggregate([
+            {
+                $match: {
+                    "_id": mongoose.Types.ObjectId( req.body.user_id ) 
+                }
+            },
+            { $lookup: { from: 'user_plans', localField: '_id', foreignField: 'user_id', as: 'user_plans' } },
+            {
+                $match: {
+                    "user_plans.is_expired": { $eq: false }
+                }
+            },
+            { $unwind: { path : "$files" , "preserveNullAndEmptyArrays": true } },
+            {$group: {_id: '$_id', files: {$push: '$files'} , user_plans :  { $first :'$user_plans' }}}
+        ]));
+        const singleUserPlan = checkUserPlan[0];
+        if(!singleUserPlan?.user_plans || !singleUserPlan?.user_plans?.length){
+            throw new Error('Your selected plan has expired or You have not selected any plan.');
+        }
+        const toCheckUserPlan = singleUserPlan?.user_plans[0];
+        const currentDateTime = moment(new Date());
+        const planCreatedDateTime = moment(new Date(toCheckUserPlan.created_at));  
+        const diffInHours = currentDateTime.diff(planCreatedDateTime,'hours'); 
+
+        if (diffInHours > 24) {
+            await UserPlans.findByIdAndUpdate({ _id: toCheckUserPlan._id }, { is_expired: true });
+            throw new Error('Your selected plan has expired. Please select another one to continue.');
+        }
+        
+        const planInfo = __parse(await Plan.findOne({ _id: toCheckUserPlan.plan_id }));
+        if (singleUserPlan?.files && (singleUserPlan?.files?.length > planInfo.limit)) {
+            await UserPlans.findByIdAndUpdate({ _id: toCheckUserPlan._id }, { is_expired: true });
+            throw new Error('Your selected plan limit has reached. Please select other one.');
+        }
+        res.status(200).json({ message :'success' , result : { data : 'valid plan exists' } });
+
+    } catch (error) {
+        res.status(401).json({ message: error?.message, data: {} });
+    }
+}
+
+async function addOrUpgradeUserSubscriptionPlan(req, res, next) {
+
+    try {
+        
+        const { user_id, plan_id } = req.body;
+        const checkExisted = __parse(await Plan.findOne( { _id : plan_id } ) );
+        if (!checkExisted) { 
+            throw new Error('Selected Plan does`t exist. Please select other one');
+        }
+
+        const existedUserPlan = __parse(await UserPlans.find({ user_id: user_id }));
+        if (existedUserPlan) {
+            await UserPlans.deleteMany({ user_id: user_id });
+        }
+        const userPlanInfo = new UserPlans({ user_id: user_id, plan_id: plan_id, created_at: new Date() });
+        const createdUserPlan = __parse(await userPlanInfo.save());
+        res.status(200).json({ message: 'success', result: { date: createdUserPlan } });
+
+    } catch (error) {
+        res.status(401).json({ message: error?.message, data: {} });
+    }
+ }
+
 module.exports = {
     register,
     login,
@@ -214,5 +284,7 @@ module.exports = {
     saveUploadedFile,
     getUsers,
     changeUserStatus,
-    deleteFile
+    deleteFile,
+    checkUserPlanExists,
+    addOrUpgradeUserSubscriptionPlan
 }
