@@ -220,11 +220,6 @@ async function checkUserPlanExists(req,res,next) {
                 }
             },
             { $lookup: { from: 'user_plans', localField: '_id', foreignField: 'user_id', as: 'user_plans' } },
-            {
-                $match: {
-                    "user_plans.is_expired": { $eq: false }
-                }
-            },
             { $unwind: { path : "$files" , "preserveNullAndEmptyArrays": true } },
             {$group: {_id: '$_id', files: {$push: '$files'} , user_plans :  { $first :'$user_plans' }}}
         ]));
@@ -238,13 +233,11 @@ async function checkUserPlanExists(req,res,next) {
         const diffInHours = currentDateTime.diff(planCreatedDateTime,'hours'); 
 
         if (diffInHours > 24) {
-            await UserPlans.findByIdAndUpdate({ _id: toCheckUserPlan._id }, { is_expired: true });
             throw new Error('Your selected plan has expired. Please select another one to continue.');
         }
         
         const planInfo = __parse(await Plan.findOne({ _id: toCheckUserPlan.plan_id }));
         if (singleUserPlan?.files && (singleUserPlan?.files?.length > planInfo.limit)) {
-            await UserPlans.findByIdAndUpdate({ _id: toCheckUserPlan._id }, { is_expired: true });
             throw new Error('Your selected plan limit has reached. Please select other one.');
         }
         res.status(200).json({ message :'success' , result : { data : 'valid plan exists' } });
