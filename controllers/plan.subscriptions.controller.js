@@ -10,7 +10,7 @@ async function createSubscriptionPlan(req, res, next) {
         res.status(200).json({ message: "success", result: { data: createdPlan } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message });
+        res.status(400).json({ message: error?.message });
     }
 }
 
@@ -25,7 +25,7 @@ async function updateSubscriptionPlan(req,res,next) {
         res.status(200).json({ message: 'success', result: { data: {} } })
 
     } catch (error) {
-        res.status(401).json({ message: error?.message });
+        res.status(400).json({ message: error?.message });
     }
  }
 

@@ -29,7 +29,7 @@ async function register(req, res, next) {
         res.status(200).json({ message: 'success', result: { data: { ...createdUser } } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message });
+        res.status(400).json({ message: error?.message });
     }
 
 }
@@ -56,7 +56,7 @@ async function login(req, res, next) {
         });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -90,7 +90,7 @@ async function saveUploadedFile(req, res, next) {
         res.status(200).json({ message: 'success', result: { data: {} } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -118,7 +118,7 @@ async function getUsers(req,res,next){
         }
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
    
 }
@@ -139,7 +139,7 @@ async function changeUserStatus(req,res,next){
         res.status(200).json({ message: 'success', result: { data: {} } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
 
     }
 }
@@ -158,7 +158,7 @@ async function deleteFile(req,res,next){
         res.json({ message: "success" });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -234,7 +234,7 @@ async function checkUserPlanExists(req,res,next) {
         res.status(200).json({ message: 'success', result: { data: 'valid plan exists' } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -257,7 +257,7 @@ async function addOrUpgradeUserSubscriptionPlan(req, res, next) {
         res.status(200).json({ message: 'success', result: { date: createdUserPlan } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
  }
 
