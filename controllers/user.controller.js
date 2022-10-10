@@ -29,7 +29,7 @@ async function register(req, res, next) {
         res.status(200).json({ message: 'success', result: { data: { ...createdUser } } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message });
+        res.status(400).json({ message: error?.message });
     }
 
 }
@@ -56,7 +56,7 @@ async function login(req, res, next) {
         });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -90,7 +90,7 @@ async function saveUploadedFile(req, res, next) {
         res.status(200).json({ message: 'success', result: { data: {} } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -118,7 +118,7 @@ async function getUsers(req,res,next){
         }
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
    
 }
@@ -139,7 +139,7 @@ async function changeUserStatus(req,res,next){
         res.status(200).json({ message: 'success', result: { data: {} } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
 
     }
 }
@@ -158,7 +158,7 @@ async function deleteFile(req,res,next){
         res.json({ message: "success" });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -212,45 +212,29 @@ async function getUserInfo(page , per_page , whereFilter) {
 async function checkUserPlanExists(req,res,next) {
     
     try {
-        
-        const checkUserPlan = __parse(await User.aggregate([
-            {
-                $match: {
-                    "_id": mongoose.Types.ObjectId( req.body.user_id ) 
-                }
-            },
-            { $lookup: { from: 'user_plans', localField: '_id', foreignField: 'user_id', as: 'user_plans' } },
-            {
-                $match: {
-                    "user_plans.is_expired": { $eq: false }
-                }
-            },
-            { $unwind: { path : "$files" , "preserveNullAndEmptyArrays": true } },
-            {$group: {_id: '$_id', files: {$push: '$files'} , user_plans :  { $first :'$user_plans' }}}
-        ]));
-        const singleUserPlan = checkUserPlan[0];
-        if(!singleUserPlan?.user_plans || !singleUserPlan?.user_plans?.length){
-            throw new Error('Your selected plan has expired or You have not selected any plan.');
+
+        const { user_id } = req.body;
+        const checkExistedPlan = __parse(await UserPlans.findOne({ user_id: user_id }).populate('plan_id'));
+        if (!checkExistedPlan || Object.keys(checkExistedPlan).length) {
+            throw new Error('You have not selected any plan.');
         }
-        const toCheckUserPlan = singleUserPlan?.user_plans[0];
+
         const currentDateTime = moment(new Date());
-        const planCreatedDateTime = moment(new Date(toCheckUserPlan.created_at));  
-        const diffInHours = currentDateTime.diff(planCreatedDateTime,'hours'); 
+        const planCreatedDateTime = moment(new Date(checkExistedPlan.created_at));
+        const diffInHours = currentDateTime.diff(planCreatedDateTime, 'hours');
 
         if (diffInHours > 24) {
-            await UserPlans.findByIdAndUpdate({ _id: toCheckUserPlan._id }, { is_expired: true });
             throw new Error('Your selected plan has expired. Please select another one to continue.');
         }
-        
-        const planInfo = __parse(await Plan.findOne({ _id: toCheckUserPlan.plan_id }));
-        if (singleUserPlan?.files && (singleUserPlan?.files?.length > planInfo.limit)) {
-            await UserPlans.findByIdAndUpdate({ _id: toCheckUserPlan._id }, { is_expired: true });
+
+        const userFilesInfo = __parse(await User.findOne({ _id: user_id }));
+        if (userFilesInfo?.files && userFilesInfo?.files?.length > checkExistedPlan.plan_id.limit) {
             throw new Error('Your selected plan limit has reached. Please select other one.');
         }
-        res.status(200).json({ message :'success' , result : { data : 'valid plan exists' } });
+        res.status(200).json({ message: 'success', result: { data: 'valid plan exists' } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -273,7 +257,7 @@ async function addOrUpgradeUserSubscriptionPlan(req, res, next) {
         res.status(200).json({ message: 'success', result: { date: createdUserPlan } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
  }
 
