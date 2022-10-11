@@ -26,7 +26,7 @@ async function changeUserPaymentStatus(req, res, next) {
 async function createCheckOutSession(req, res) {
 
     try {
-
+        const {price , name}   = req.body;
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [
@@ -34,18 +34,18 @@ async function createCheckOutSession(req, res) {
                     price_data: {
                         currency: 'usd',
                         product_data: {
-                            name: 'T-shirt',
+                            name:name,
                         },
-                        unit_amount: 2000,
+                        unit_amount: price,
                     },
                     quantity: 1,
                 },
             ],
             mode: 'payment',
-            success_url: process.env.SUCCESS_URL,
-            cancel_url: process.env.CANCEL_URL,
+            success_url: process.env.SUCCESS_URL || 'http://localhost:4200/#/refund/payment-success',
+            cancel_url: process.env.CANCEL_URL || 'http://localhost:4200/#/refund/payment-cancel',
         });
-
+        
         res.status(200).json({ message: 'success', result: { data: session } });
 
     } catch (error) {
