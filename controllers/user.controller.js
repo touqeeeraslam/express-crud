@@ -123,6 +123,19 @@ async function getUsers(req,res,next){
    
 }
 
+async function getPlans(req,res,next){
+
+    try {
+
+            const userData = __parse(await Plan.find());
+            res.status(200).json({ message: 'success', result: { data: userData } });
+       
+    } catch (error) {
+        res.status(400).json({ message: error?.message, data: {} });
+    }
+   
+}
+
 async function changeUserStatus(req,res,next){
 
     try {
@@ -267,6 +280,7 @@ module.exports = {
     uploadFiles,
     saveUploadedFile,
     getUsers,
+    getPlans,
     changeUserStatus,
     deleteFile,
     checkUserPlanExists,
