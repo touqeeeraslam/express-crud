@@ -1,12 +1,14 @@
 
 const User = require('../models/user');
 const Role = require('../models/role');
-const UserStorage = require('../models/user.storage');
+const UserPlans = require('../models/user_plans');
+const Plan = require('../models/plans');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { uploadToFirebaseStorage,deleteFromStorage } = require('../shared/firebase/firebase.storage');
 const { __parse } = require('../shared/helper');
-
+const { mongoose } = require('../config/mongo.config');
+const moment = require('moment');
 
 async function register(req, res, next) {
 
@@ -27,7 +29,7 @@ async function register(req, res, next) {
         res.status(200).json({ message: 'success', result: { data: { ...createdUser } } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message });
+        res.status(400).json({ message: error?.message });
     }
 
 }
@@ -54,7 +56,7 @@ async function login(req, res, next) {
         });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -88,7 +90,7 @@ async function saveUploadedFile(req, res, next) {
         res.status(200).json({ message: 'success', result: { data: {} } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -116,7 +118,20 @@ async function getUsers(req,res,next){
         }
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
+    }
+   
+}
+
+async function getPlans(req,res,next){
+
+    try {
+
+            const userData = __parse(await Plan.find());
+            res.status(200).json({ message: 'success', result: { data: userData } });
+       
+    } catch (error) {
+        res.status(400).json({ message: error?.message, data: {} });
     }
    
 }
@@ -137,7 +152,7 @@ async function changeUserStatus(req,res,next){
         res.status(200).json({ message: 'success', result: { data: {} } });
 
     } catch (error) {
-        res.status(401).json({ message: error?.message, data: {} });
+        res.status(400).json({ message: error?.message, data: {} });
 
     }
 }
@@ -156,7 +171,7 @@ async function deleteFile(req,res,next){
         res.json({ message: "success" });
 
     } catch (error) {
-        console.log(error.code);
+        res.status(400).json({ message: error?.message, data: {} });
     }
 }
 
@@ -196,6 +211,7 @@ async function getUserInfo(page , per_page , whereFilter) {
         { $unwind: { path : "$files" , "preserveNullAndEmptyArrays": true } },
         {
             $match: {
+                "status": { $eq: 1 },
                 "user_role.name": { $ne: "Admin" }
             }
         },
@@ -206,12 +222,67 @@ async function getUserInfo(page , per_page , whereFilter) {
     ]));
 }
 
+async function checkUserPlanExists(req,res,next) {
+    
+    try {
+
+        const { user_id } = req.body;
+        const checkExistedPlan = __parse(await UserPlans.findOne({ user_id: user_id }).populate('plan_id'));
+        if (!checkExistedPlan || !Object.keys(checkExistedPlan).length) {
+            throw new Error('You have not selected any plan.');
+        }
+
+        const currentDateTime = moment(new Date());
+        const planCreatedDateTime = moment(new Date(checkExistedPlan.created_at));
+        const diffInHours = currentDateTime.diff(planCreatedDateTime, 'hours');
+
+        if (diffInHours > 24) {
+            throw new Error('Your selected plan has expired. Please select another one to continue.');
+        }
+
+        const userFilesInfo = __parse(await User.findOne({ _id: user_id }));
+        if (userFilesInfo?.files && userFilesInfo?.files?.length > checkExistedPlan.plan_id.limit) {
+            throw new Error('Your selected plan limit has reached. Please select other one.');
+        }
+        res.status(200).json({ message: 'success', result: { data: 'valid plan exists' } });
+
+    } catch (error) {
+        res.status(400).json({ message: error?.message, data: {} });
+    }
+}
+
+async function addOrUpgradeUserSubscriptionPlan(req, res, next) {
+
+    try {
+        
+        const { user_id, plan_id } = req.body;
+        const checkExisted = __parse(await Plan.findOne( { _id : plan_id } ) );
+        if (!checkExisted) { 
+            throw new Error('Selected Plan does`t exist. Please select other one');
+        }
+
+        const existedUserPlan = __parse(await UserPlans.find({ user_id: user_id }));
+        if (existedUserPlan) {
+            await UserPlans.deleteMany({ user_id: user_id });
+        }
+        const userPlanInfo = new UserPlans({ user_id: user_id, plan_id: plan_id, created_at: new Date() });
+        const createdUserPlan = __parse(await userPlanInfo.save());
+        res.status(200).json({ message: 'success', result: { date: createdUserPlan } });
+
+    } catch (error) {
+        res.status(400).json({ message: error?.message, data: {} });
+    }
+ }
+
 module.exports = {
     register,
     login,
     uploadFiles,
     saveUploadedFile,
     getUsers,
+    getPlans,
     changeUserStatus,
-    deleteFile
+    deleteFile,
+    checkUserPlanExists,
+    addOrUpgradeUserSubscriptionPlan
 }
