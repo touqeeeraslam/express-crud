@@ -228,7 +228,7 @@ async function checkUserPlanExists(req,res,next) {
 
         const { user_id } = req.body;
         const checkExistedPlan = __parse(await UserPlans.findOne({ user_id: user_id }).populate('plan_id'));
-        if (!checkExistedPlan || Object.keys(checkExistedPlan).length) {
+        if (!checkExistedPlan || !Object.keys(checkExistedPlan).length) {
             throw new Error('You have not selected any plan.');
         }
 
