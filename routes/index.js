@@ -10,5 +10,4 @@ router.use('/roles',roleRouter);
 router.use('/payment',paymentRouter);
 router.use('/plans',planRouter);
 
-
 module.exports = router;

@@ -1,3 +1,5 @@
+const dotEnv = require('dotenv');
+dotEnv.config();
 const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
@@ -6,8 +8,7 @@ const logger = require('morgan');
 const { initializeApp } = require('firebase/app');
 const { firebaseConfig } = require('./config/firebase.config');
 const indexRouter = require('./routes/index');
-const dotEnv = require('dotenv');
-dotEnv.config();
+
 
 
 const app = express();
